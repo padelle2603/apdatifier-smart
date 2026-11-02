@@ -34,6 +34,14 @@ Item {
                 icon: "apdatifier-packages",
                 urgency: "DefaultUrgency"
             },
+            critical: {
+                icon: "dialog-warning",
+                urgency: "CriticalUrgency"
+            },
+            important: {
+                icon: "emblem-important",
+                urgency: "HighUrgency"
+            },
             news: {
                 icon: "news-subscribe",
                 urgency: "HighUrgency"
@@ -47,6 +55,8 @@ Item {
         const { icon, urgency } = params[event]
 
         const action = (event === "updates" && cfg.notifyUpdatesAction) ? upgradeAction.createObject(root)
+                     : (event === "critical" && cfg.notifyUpdatesAction) ? upgradeAction.createObject(root)
+                     : (event === "important" && cfg.notifyUpdatesAction) ? upgradeAction.createObject(root)
                      : (event === "news" && cfg.notifyNewsAction) ? openArticleAction.createObject(root, { link: link })
                      : []
 

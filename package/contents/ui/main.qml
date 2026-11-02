@@ -66,6 +66,8 @@ PlasmoidItem {
         property bool init: false
         property var errors: []
         property int count: 0
+        property int criticalCount: 0
+        property int importantCount: 0
         property double lastCheck: 0
         property bool busy: true
         property bool upgrading: false

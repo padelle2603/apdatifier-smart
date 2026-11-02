@@ -620,6 +620,7 @@ function sortList(list, byName) {
         const repo = a.RE.localeCompare(b.RE)
         if (byName || !cfg.sorting) return name
 
+        if (a.CR !== b.CR) return a.CR ? -1 : 1
         if (a.IM !== b.IM) return a.IM ? -1 : 1
 
         const develA = a.RE.includes("devel")
@@ -638,6 +639,16 @@ function sortList(list, byName) {
 function refreshListModel(list) {
     list = sortList(applyRules(list || cache)) || []
     sts.count = list.length || 0
+    
+    // Count critical and important packages for smart notifications
+    if (cfg.smartNotifications) {
+        sts.criticalCount = list.filter(el => el.CR).length || 0
+        sts.importantCount = list.filter(el => el.IM && !el.CR).length || 0
+    } else {
+        sts.criticalCount = 0
+        sts.importantCount = 0
+    }
+    
     setStatusBar()
 
     if (!list) return
@@ -703,10 +714,41 @@ function finalize(list) {
             (!cached.has(el.NM) || (cfg.notifyEveryBump && cached.get(el.NM) !== el.VN))
         )
     
-        if (newList.length > 0) {
-            const title = i18np("+%1 new update", "+%1 new updates", newList.length)
-            const body = newList.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
-            notify.send("updates", title, body)
+        if (cfg.smartNotifications) {
+            // Smart notifications mode
+            const critical = newList.filter(el => el.CR)
+            const important = newList.filter(el => el.IM && !el.CR)
+            const minor = newList.filter(el => !el.CR && !el.IM)
+            const minorLarge = minor.filter(el => parseSizeToMB(el.IS) >= cfg.minorSizeThreshold)
+            
+            // Notify critical packages immediately with CriticalUrgency
+            if (critical.length > 0) {
+                const title = i18np("🔴 %1 critical update", "🔴 %1 critical updates", critical.length)
+                const body = critical.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
+                notify.send("critical", title, body)
+            }
+            
+            // Notify important packages immediately with HighUrgency
+            if (important.length > 0) {
+                const title = i18np("⚠️ %1 important update", "⚠️ %1 important updates", important.length)
+                const body = important.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
+                notify.send("important", title, body)
+            }
+            
+            // Notify minor packages only if >= threshold size
+            if (minorLarge.length > 0) {
+                const title = i18np("+%1 new update", "+%1 new updates", minorLarge.length)
+                const body = minorLarge.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
+                notify.send("updates", title, body)
+            }
+            // Minor packages < threshold: no notification
+        } else {
+            // Standard notifications mode (current behavior)
+            if (newList.length > 0) {
+                const title = i18np("+%1 new update", "+%1 new updates", newList.length)
+                const body = newList.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
+                notify.send("updates", title, body)
+            }
         }
     }
 
@@ -846,6 +888,62 @@ function setIcon(icon) {
 }
 
 
+// Smart notifications: parse package size to MB
+function parseSizeToMB(sizeString) {
+    if (!sizeString || sizeString === "") return 0
+    
+    const match = sizeString.match(/^([\d.,]+)\s*([KMGT]i?B?)$/i)
+    if (!match) return 0
+    
+    const value = parseFloat(match[1].replace(',', '.'))
+    const unit = match[2].toUpperCase()
+    
+    if (unit.startsWith('K')) return value / 1024
+    if (unit.startsWith('M')) return value
+    if (unit.startsWith('G')) return value * 1024
+    if (unit.startsWith('T')) return value * 1024 * 1024
+    if (unit === 'B') return value / (1024 * 1024)
+    
+    return 0
+}
+
+// Smart notifications: check if package is critical
+function isCriticalPackage(name) {
+    const criticalPatterns = [
+        /^linux[0-9-]?/,           // linux, linux-lts, linux-cachyos
+        /^linux-firmware/,          // firmware
+        /^nvidia/,                  // driver NVIDIA
+        /^lib32-nvidia/,            // driver 32bit
+        /^mesa$/, /^lib32-mesa$/,   // Mesa
+        /^vulkan-/, /^lib32-vulkan-/, // Vulkan
+        /^systemd$/, /^glibc$/,     // sistema
+        /^grub/, /^sudo$/, /^polkit$/, // sicurezza
+        /^openssl/, /^gnutls/, /^ssh/, /^gnupg/, // sicurezza
+        /^pam$/, /^gcc-libs$/       // sistema base
+    ]
+    
+    return criticalPatterns.some(pattern => pattern.test(name))
+}
+
+// Smart notifications: check if package is important (gaming/communication)
+function isImportantPackage(name) {
+    const importantPatterns = [
+        /^steam/,                   // Steam
+        /^wine/, /^proton/,         // Wine/Proton
+        /^heroic/, /^lutris/,       // Launcher
+        /dxvk|vkd3d|mangohud|gamescope/, // Gaming tools
+        /^pcsx2|^dolphin-emu|^rpcs3|^citra|^yuzu|^ryujinx/, // Emulatori
+        /teams|discord|slack|teamspeak/i, // Comunicazione
+        /^umu-launcher/,            // UMU
+        /^lib32-nvidia/, /^lib32-vulkan/, // driver gaming 32bit
+        /^protontricks/, /^protonplus/, // proton tools
+        /^gamescope/, /^mangohud/   // gaming overlay
+    ]
+    
+    return importantPatterns.some(pattern => pattern.test(name))
+}
+
+
 function applyRules(list) {
     const rules = !cfg.rules ? [] : JSON.parse(cfg.rules)
 
@@ -853,6 +951,16 @@ function applyRules(list) {
         el.IC = el.IN ? el.IN : el.ID ? el.ID : "apdatifier-package"
         el.EX = false
         el.IM = false
+        el.CR = false
+        
+        // Smart notifications: auto-detect critical and important packages
+        if (cfg.smartNotifications) {
+            if (isCriticalPackage(el.NM)) {
+                el.CR = true
+            } else if (isImportantPackage(el.NM)) {
+                el.IM = true
+            }
+        }
     })
 
     function applyRule(el, rule) {
@@ -885,6 +993,7 @@ function keys(list) {
         if (el.hasOwnProperty("IC")) delete el["IC"]
         if (el.hasOwnProperty("EX")) delete el["EX"]
         if (el.hasOwnProperty("IM")) delete el["IM"]
+        if (el.hasOwnProperty("CR")) delete el["CR"]
     })
 
     return list

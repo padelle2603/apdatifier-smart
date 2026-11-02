@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# scripts/install.sh - Install or upgrade the apdatifier plasmoid locally
+
+# Lavora sempre dalla radice del repo, ovunque venga lanciato lo script
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+echo "==> Running quality checks before installation..."
+if [ -f "$REPO_ROOT/scripts/check.sh" ]; then
+    "$REPO_ROOT/scripts/check.sh"
+fi
+
+echo "==> Installing/Upgrading plasmoid using kpackagetool6..."
+if kpackagetool6 --type Plasma/Applet --list | grep -q "com.github.exequtic.apdatifier"; then
+    kpackagetool6 --type Plasma/Applet --upgrade "$REPO_ROOT/package"
+    echo "✓ Plasmoid successfully upgraded."
+else
+    kpackagetool6 --type Plasma/Applet --install "$REPO_ROOT/package"
+    echo "✓ Plasmoid successfully installed."
+fi
+
+# Chiedi se riavviare plasmashell
+REPLY=""
+read -p "Do you want to restart Plasma Shell to apply changes immediately? [y/N] " -n 1 -r || true
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "==> Restarting Plasma Shell..."
+    kquitapp6 plasmashell 2>/dev/null || true
+    sleep 2
+    kstart plasmashell &
+    echo "✓ Plasma Shell restarted."
+fi
+
+echo "==> Done!"

@@ -37,6 +37,8 @@ SimpleKCM {
     property alias cfg_notifyUpdatesAction: notifyUpdatesAction.checked
     property alias cfg_notifyEveryBump: notifyEveryBump.checked
     property alias cfg_notifyExplicitOnly: notifyExplicitOnly.checked
+    property alias cfg_smartNotifications: smartNotifications.checked
+    property alias cfg_minorSizeThreshold: minorSizeThreshold.value
     property alias cfg_notifyNews: notifyNews.checked
     property alias cfg_notifyNewsAction: notifyNewsAction.checked
     property alias cfg_notifyErrors: notifyErrors.checked
@@ -544,6 +546,50 @@ SimpleKCM {
                 id: notifyExplicitOnly
                 text: i18n("Don't notify about dependencies")
                 enabled: notifyUpdates.checked
+            }
+
+            Item {
+                Kirigami.FormData.isSection: true
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                CheckBox {
+                    id: smartNotifications
+                    text: i18n("Smart notifications")
+                    enabled: notifyUpdates.checked
+                }
+
+                Kirigami.ContextualHelpButton {
+                    toolTipText: i18n("Notify immediately for <b>critical</b> packages (kernel, drivers, security) and <b>important</b> packages (gaming, communication).<br><br>Skip notifications for minor packages under the size threshold.")
+                }
+            }
+
+            RowLayout {
+                visible: smartNotifications.checked
+                enabled: notifyUpdates.checked && smartNotifications.checked
+                Kirigami.FormData.label: i18n("Size threshold") + ":"
+
+                SpinBox {
+                    id: minorSizeThreshold
+                    from: 50
+                    to: 5000
+                    stepSize: 50
+                    value: minorSizeThreshold.value
+                }
+
+                Label { text: "MB" }
+            }
+
+            Item {
+                Kirigami.FormData.isSection: true
+            }
+
+            Kirigami.Separator {
+                Layout.fillWidth: true
             }
 
             RowLayout {

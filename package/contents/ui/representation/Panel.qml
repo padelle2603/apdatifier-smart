@@ -180,7 +180,12 @@ MouseArea {
                     height: mouseArea.counterCenter ? frame.height : counter.implicitHeight
                     radius: cfg.counterRadius
                     opacity: cfg.counterOpacity / 10
-                    color: cfg.counterColor ? cfg.counterColor : Kirigami.Theme.backgroundColor
+                    color: {
+                        if (cfg.counterColor) return cfg.counterColor
+                        if (cfg.smartNotifications && sts.criticalCount > 0) return Kirigami.Theme.negativeBackgroundColor
+                        if (cfg.smartNotifications && sts.importantCount > 0) return Kirigami.Theme.neutralBackgroundColor
+                        return Kirigami.Theme.backgroundColor
+                    }
                     visible: mouseArea.counterEnabled && !sts.busy && sts.count
 
                     layer.enabled: true
