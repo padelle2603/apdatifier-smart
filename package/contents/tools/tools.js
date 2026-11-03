@@ -644,9 +644,13 @@ function refreshListModel(list) {
     if (cfg.smartNotifications) {
         sts.criticalCount = list.filter(el => el.CR).length || 0
         sts.importantCount = list.filter(el => el.IM && !el.CR).length || 0
+        sts.notifiableCount = list.filter(el =>
+            el.CR || el.IM || parseSizeToMB(el.IS) >= cfg.minorSizeThreshold
+        ).length || 0
     } else {
         sts.criticalCount = 0
         sts.importantCount = 0
+        sts.notifiableCount = sts.count
     }
     
     setStatusBar()
@@ -675,6 +679,7 @@ function finalize(list) {
         execute(writeFile("[]", '>', cacheFile))
         cache = []
         sts.count = 0
+        sts.notifiableCount = 0
         setStatusBar()
         return
     }

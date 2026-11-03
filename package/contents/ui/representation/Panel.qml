@@ -129,10 +129,10 @@ MouseArea {
 
             Label {
                 id: counterText
-                visible: mouseArea.counterEnabled && !sts.busy && sts.count
+                visible: mouseArea.counterEnabled && !sts.busy && sts.notifiableCount
                 font: cfg.counterFont.family ? cfg.counterFont : Kirigami.Theme.defaultFont
                 fontSizeMode: Text.FixedSize
-                text: sts.count
+                text: sts.notifiableCount
             }
 
             Item { Layout.preferredWidth: Kirigami.Units.smallSpacing + cfg.counterGapsOuter }
@@ -186,7 +186,7 @@ MouseArea {
                         if (cfg.smartNotifications && sts.importantCount > 0) return Kirigami.Theme.neutralBackgroundColor
                         return Kirigami.Theme.backgroundColor
                     }
-                    visible: mouseArea.counterEnabled && !sts.busy && sts.count
+                    visible: mouseArea.counterEnabled && !sts.busy && sts.notifiableCount
 
                     layer.enabled: true
                     layer.effect: DropShadow {
@@ -220,7 +220,7 @@ MouseArea {
                 Label {
                     id: counter
                     anchors.centerIn: counterFrame
-                    text: sts.count
+                    text: sts.notifiableCount
                     font: cfg.counterFont.family ? cfg.counterFont : Kirigami.Theme.smallFont
                     color: cfg.counterColor ? (mouseArea.darkColor(counterFrame.color) ? mouseArea.lightText : mouseArea.darkText) : Kirigami.Theme.textColor
                     visible: counterFrame.visible
