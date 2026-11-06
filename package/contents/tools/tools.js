@@ -645,7 +645,7 @@ function refreshListModel(list) {
         sts.criticalCount = list.filter(el => el.CR).length || 0
         sts.importantCount = list.filter(el => el.IM && !el.CR).length || 0
         sts.notifiableCount = list.filter(el =>
-            el.CR || el.IM || parseSizeToMB(el.IS) >= cfg.minorSizeThreshold
+            el.CR || el.IM || !el.MN || el.ML
         ).length || 0
     } else {
         sts.criticalCount = 0
@@ -723,8 +723,9 @@ function finalize(list) {
             // Smart notifications mode
             const critical = newList.filter(el => el.CR)
             const important = newList.filter(el => el.IM && !el.CR)
-            const minor = newList.filter(el => !el.CR && !el.IM)
-            const minorLarge = minor.filter(el => parseSizeToMB(el.IS) >= cfg.minorSizeThreshold)
+            const minor = newList.filter(el => !el.CR && !el.IM && el.MN)
+            const minorLarge = minor.filter(el => el.ML)
+            const normal = newList.filter(el => !el.CR && !el.IM && !el.MN)
             
             // Notify critical packages immediately with CriticalUrgency
             if (critical.length > 0) {
@@ -740,13 +741,14 @@ function finalize(list) {
                 notify.send("important", title, body)
             }
             
-            // Notify minor packages only if >= threshold size
-            if (minorLarge.length > 0) {
-                const title = i18np("+%1 new update", "+%1 new updates", minorLarge.length)
-                const body = minorLarge.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
+            // Notify normal packages always and dependencies only if >= threshold size
+            const regularUpdates = normal.concat(minorLarge)
+            if (regularUpdates.length > 0) {
+                const title = i18np("+%1 new update", "+%1 new updates", regularUpdates.length)
+                const body = regularUpdates.map(pkg => `${pkg.NM} → ${pkg.VN}`).join("\n")
                 notify.send("updates", title, body)
             }
-            // Minor packages < threshold: no notification
+            // Dependencies below the threshold are intentionally silent
         } else {
             // Standard notifications mode (current behavior)
             if (newList.length > 0) {
@@ -957,6 +959,8 @@ function applyRules(list) {
         el.EX = false
         el.IM = false
         el.CR = false
+        el.MN = el.RN === "dependency" || el.RN === "orphan"
+        el.ML = el.MN && parseSizeToMB(el.IS) >= cfg.minorSizeThreshold
         
         // Smart notifications: auto-detect critical and important packages
         if (cfg.smartNotifications) {
@@ -999,6 +1003,8 @@ function keys(list) {
         if (el.hasOwnProperty("EX")) delete el["EX"]
         if (el.hasOwnProperty("IM")) delete el["IM"]
         if (el.hasOwnProperty("CR")) delete el["CR"]
+        if (el.hasOwnProperty("MN")) delete el["MN"]
+        if (el.hasOwnProperty("ML")) delete el["ML"]
     })
 
     return list
