@@ -122,7 +122,10 @@ Item {
                                 Label {
                                     Layout.fillWidth: true
                                     text: model.NM
-                                    color: model.IM ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                                    color: model.CR ? Kirigami.Theme.negativeTextColor
+                                           : model.IM ? Kirigami.Theme.neutralTextColor
+                                           : model.MN && !model.ML ? Kirigami.Theme.disabledTextColor
+                                           : Kirigami.Theme.positiveTextColor
                                     elide: Text.ElideRight
                                     font.weight: Font.DemiBold
                                 }
@@ -171,7 +174,10 @@ Item {
                             Label {
                                 Layout.fillWidth: true
                                 text: model.NM
-                                color: model.IM ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+                                color: model.CR ? Kirigami.Theme.negativeTextColor
+                                           : model.IM ? Kirigami.Theme.neutralTextColor
+                                           : model.MN && !model.ML ? Kirigami.Theme.disabledTextColor
+                                           : Kirigami.Theme.positiveTextColor
                                 elide: Text.ElideRight
                                 font.weight: Font.DemiBold
                             }

@@ -564,14 +564,14 @@ SimpleKCM {
                 }
 
                 Kirigami.ContextualHelpButton {
-                    toolTipText: i18n("Notify immediately for <b>critical</b> packages (kernel, drivers, security) and <b>important</b> packages (gaming, communication).<br><br>Skip notifications for minor packages under the size threshold.")
+                    toolTipText: i18n("Notify immediately for <b>critical</b> packages (kernel, drivers, security) and <b>important</b> packages (gaming, communication).<br><br>Notify normal packages immediately. Skip dependency updates below the size threshold.")
                 }
             }
 
             RowLayout {
                 visible: smartNotifications.checked
                 enabled: notifyUpdates.checked && smartNotifications.checked
-                Kirigami.FormData.label: i18n("Size threshold") + ":"
+                Kirigami.FormData.label: i18n("Dependency size threshold") + ":"
 
                 SpinBox {
                     id: minorSizeThreshold
